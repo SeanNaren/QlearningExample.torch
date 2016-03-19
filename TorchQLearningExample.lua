@@ -1,5 +1,5 @@
 --[[
-            Example of Re-inforcement learning using the Q function described in this paper from deepmind.
+            Example of re-inforcement learning using the Q function described in this paper from Deepmind.
             https://www.cs.toronto.edu/~vmnih/docs/dqn.pdf
 
             The example itself is very simple. The agent must navigate an array where the agent can move left or right.
