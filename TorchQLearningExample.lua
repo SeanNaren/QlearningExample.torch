@@ -41,7 +41,7 @@ local function CatchEnvironment(gridSize)
         return canvas
     end
 
-    -- Resets the environment.
+    -- Resets the environment. Randomly initialise the fruit position (always at the top to begin with) and bucket.
     function env.reset()
         local initialFruitColumn = math.random(1, gridSize)
         local initialBucketPosition = math.random(2, gridSize - 1)
@@ -96,9 +96,6 @@ local function CatchEnvironment(gridSize)
         local gameOver = env.isGameOver()
         return env.observe(), reward, gameOver
     end
-
-    --We initialise the environment.
-    env.reset()
     return env
 end
 
