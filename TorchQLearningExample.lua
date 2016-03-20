@@ -5,9 +5,8 @@
             Example of Re-inforcement learning using the Q function described in this paper from deepmind.
             https://www.cs.toronto.edu/~vmnih/docs/dqn.pdf
 
-            The agent must play a game of catch. Fruits drop from the sky and the agent can move left/stay/right to collect
-            as many fruits as it can.
-
+            The agent plays a game of catch. Fruits drop from the sky and the agent can choose the actions
+            left/stay/right to catch the fruit before it reaches the ground.
 ]] --
 
 require 'nn'
