@@ -256,4 +256,4 @@ for i = 1, epoch do
     print(string.format("Epoch %d : err = %f : Win count %d ", i, err, winCount))
 end
 
-torch.save("TorchQLearningModel", model)
+torch.save("TorchQLearningModel.model", model)
