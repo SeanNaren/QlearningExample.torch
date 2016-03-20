@@ -104,7 +104,7 @@ end
 
 --[[ The memory: Handles the internal memory that we add experiences that occur based on agent's actions,
 --   and creates batches of experiences based on the mini-batch size for training.]] --
-local function createMemory(maxMemory, discount)
+local function Memory(maxMemory, discount)
     local memory = {}
 
     -- Appends the experience to the memory.
@@ -206,7 +206,7 @@ local sgdParams = {
 local criterion = nn.MSECriterion()
 
 local env = CatchEnvironment(gridSize)
-local memory = createMemory(maxMemory, discount)
+local memory = Memory(maxMemory, discount)
 
 local winCount = 0
 for i = 1, epoch do
