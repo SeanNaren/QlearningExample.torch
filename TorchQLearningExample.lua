@@ -1,5 +1,5 @@
 --[[
-            Torch translation of the keras example found here (written by Eder Santana).
+                 Torch translation of the keras example found here (written by Eder Santana).
             https://gist.github.com/EderSantana/c7222daa328f0e885093#file-qlearn-py-L164
 
             Example of Re-inforcement learning using the Q function described in this paper from deepmind.
@@ -7,7 +7,6 @@
 
             The agent must play a game of catch. Fruits drop from the sky and the agent can move left/stay/right to collect
             as many fruits as it can.
-
 ]] --
 
 require 'nn'
@@ -21,80 +20,70 @@ local function randf(s, e)
 end
 
 --[[ The environment: Handles interactions and contains the state of the environment]] --
-local function CatchEnvironment(gridSize)
+local function createEnv(nbStates)
     local env = {}
     local state
+    local currentPositionOfAgent = 1
     -- Returns the state of the environment.
     function env.observe()
-        local canvas = env.drawState()
-        canvas = canvas:view(-1)
-        return canvas
+        return state
     end
 
-    function env.drawState()
-        local canvas = torch.Tensor(gridSize, gridSize):zero()
-        canvas[state[1]][state[2]] = 1 -- Draw the fruit.
-        -- Draw the basket. The basket takes the adjacent two places to the position of basket.
-        canvas[gridSize][state[3] - 1] = 1
-        canvas[gridSize][state[3]] = 1
-        canvas[gridSize][state[3] + 1] = 1
-        return canvas
-    end
-
-    -- Resets the environment.
+    -- Resets the environment back to the initial set up.
     function env.reset()
-        local initialFruitColumn = math.random(1, gridSize)
-        local initialBucketPosition = math.random(2, gridSize - 1)
-        state = torch.Tensor({ 1, initialFruitColumn, initialBucketPosition })
+        state = torch.Tensor(nbStates):zero()
+        currentPositionOfAgent = 1
+        state[currentPositionOfAgent] = 1 -- The initial position of the agent we set to 1.
     end
 
-    function env.getState()
-        local stateInfo = state
-        local fruit_row = stateInfo[1]
-        local fruit_col = stateInfo[2]
-        local basket = stateInfo[3]
-        return fruit_row, fruit_col, basket
+    -- Returns true if user is at the reward state.
+    function env.finishingMove()
+        return currentPositionOfAgent == math.floor(nbStates / 2)
     end
 
     -- Returns the award that the agent has gained for being in the current environment state.
     function env.getReward()
-        local fruitRow, fruitColumn, basket = env.getState()
-        if (fruitRow == gridSize - 1) then -- If the fruit has reached the bottom.
-        if (math.abs(fruitColumn - basket) <= 1) then -- Check if the basket caught the fruit.
-        return 1
+        local reward
+        -- There is one state (roughly half way depending on the number of states) that has a reward 1.
+        -- Rest of the states are rewards of 0.
+        if (env.finishingMove()) then
+            reward = 1
         else
-            return -1
+            reward = 0
         end
-        else
-            return 0
-        end
+        return reward
     end
 
     function env.isGameOver()
-        if (state[1] == gridSize - 1) then return true else return false end
-    end
-
-    function env.updateState(action)
-        if (action == 0) then
-            action = -1
-        elseif (action == 1)
-        then
-            action = 0
-        else
-            action = 1
-        end
-        local fruitRow, fruitColumn, basket = env.getState()
-        local newBasket = math.min(math.max(2, basket + action), gridSize - 1) -- The min/max prevents the basket from moving out of the grid.
-        fruitRow = fruitRow + 1 -- The fruit is falling by 1 every action.
-        state = torch.Tensor({ fruitRow, fruitColumn, newBasket })
+        -- If it was a finishing move then we end the game.
+        -- Since in this example there is only one reward, we also say that this is the finishing stage.
+        local gameOver = env.finishingMove()
+        return gameOver
     end
 
     -- Action can be 1 (move left) or 2 (move right)
     function env.act(action)
-        env.updateState(action)
+        if (action == 1) then
+            -- If the current state of the agent is at the start, we set the agent's position to the end (cyclic).
+            if (currentPositionOfAgent == 1) then
+                currentPositionOfAgent = nbStates
+            else
+                currentPositionOfAgent = currentPositionOfAgent - 1
+            end
+        else
+            -- If the current state of the agent is at the end, we set the agent's position to the start (cyclic).
+            if (currentPositionOfAgent == nbStates) then
+                currentPositionOfAgent = 1
+            else
+                currentPositionOfAgent = currentPositionOfAgent + 1
+            end
+        end
+        -- Update the state of the environment now that the agent has moved.
+        state = torch.Tensor(nbStates):zero()
+        state[currentPositionOfAgent] = 1
         local reward = env.getReward()
         local gameOver = env.isGameOver()
-        return env.observe(), reward, gameOver
+        return state, reward, gameOver
     end
 
     --We initialise the environment.
@@ -173,28 +162,26 @@ local function trainNetwork(model, inputs, targets, criterion, sgdParams)
     return loss
 end
 
-local epsilon = 1 -- The probability of choosing a random action (in training). This decays as iterations increase. (0 to 1)
+local epsilon = 0.3 -- The probability of choosing a random action (in training). This decays as iterations increase. (0 to 1)
 local epsilonMinimumValue = 0.1 -- The minimum value we want epsilon to reach in training. (0 to 1)
-local nbActions = 3 -- The number of actions. Since we only have left/stay/right that means 3 actions.
-local epoch = 2000 -- The number of games we want the system to run for.
-local hiddenSize = 100 -- Number of neurons in the hidden layers.
+local nbActions = 2 -- The number of actions. Since we only have left/right that means 2 actions.
+local epoch = 500 -- The number of games we want the system to run for.
 local maxMemory = 500 -- How large should the memory be (where it stores its past experiences).
 local batchSize = 50 -- The mini-batch size for training. Samples are randomly taken from memory till mini-batch size.
-local grideSize = 10 -- The size of the grid that the agent is going to play the game on.
-local nbStates = grideSize * grideSize -- We eventually flatten to a 1d tensor for the network.
+local nbStates = 9 -- The number of states in the system in terms of the environment. In our case this is 9.
 local discount = 0.9 -- The discount is used to force the network to choose states that lead to the reward quicker (0 to 1)
 
 -- Create the base model.
 local model = nn.Sequential()
-model:add(nn.Linear(nbStates, hiddenSize))
+model:add(nn.Linear(nbStates, 100))
 model:add(nn.ReLU())
-model:add(nn.Linear(hiddenSize, hiddenSize))
+model:add(nn.Linear(100, 100))
 model:add(nn.ReLU())
-model:add(nn.Linear(hiddenSize, nbActions))
+model:add(nn.Linear(100, nbActions))
 
 -- Params for Stochastic Gradient Descent (our optimizer).
 local sgdParams = {
-    learningRate = 0.1,
+    learningRate = 0.0002,
     learningRateDecay = 1e-9,
     weightDecay = 0,
     momentum = 0.9,
@@ -205,10 +192,9 @@ local sgdParams = {
 -- Mean Squared Error for our loss function.
 local criterion = nn.MSECriterion()
 
-local env = CatchEnvironment(grideSize)
+local env = createEnv(nbStates)
 local memory = createMemory(maxMemory, discount)
 
-local winCount = 0
 for i = 1, epoch do
     -- Initialise the environment.
     local err = 0
@@ -235,7 +221,6 @@ for i = 1, epoch do
             epsilon = epsilon * 0.999
         end
         local nextState, reward, gameOver = env.act(action)
-        if (reward == 1) then winCount = winCount + 1 end
         memory.remember({
             inputState = currentState,
             action = action,
@@ -253,5 +238,23 @@ for i = 1, epoch do
         -- Train the network which returns the error.
         err = err + trainNetwork(model, inputs, targets, criterion, sgdParams)
     end
-    print(string.format("Epoch %d : err = %f : Win count %d ", i, err, winCount))
+    print(string.format("Epoch %d : err = %f ", i, err))
 end
+
+
+env.reset()
+local isGameOver = false
+local inputState = env.observe()
+
+while (isGameOver ~= true) do
+    -- Forward the current state through the network.
+    local q = model:forward(inputState)
+    -- Find the max index (the chosen action).
+    local max, index = torch.max(q, 1)
+    local action = index[1]
+    print(action)
+    local nextState, reward, gameOver = env.act(action)
+    inputState = nextState
+    isGameOver = gameOver
+end
+
