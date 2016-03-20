@@ -180,8 +180,8 @@ local epoch = 2000 -- The number of games we want the system to run for.
 local hiddenSize = 100 -- Number of neurons in the hidden layers.
 local maxMemory = 500 -- How large should the memory be (where it stores its past experiences).
 local batchSize = 50 -- The mini-batch size for training. Samples are randomly taken from memory till mini-batch size.
-local grideSize = 10 -- The size of the grid that the agent is going to play the game on.
-local nbStates = grideSize * grideSize -- We eventually flatten to a 1d tensor for the network.
+local gridSize = 10 -- The size of the grid that the agent is going to play the game on.
+local nbStates = gridSize * gridSize -- We eventually flatten to a 1d tensor for the network.
 local discount = 0.9 -- The discount is used to force the network to choose states that lead to the reward quicker (0 to 1)
 
 -- Create the base model.
@@ -205,7 +205,7 @@ local sgdParams = {
 -- Mean Squared Error for our loss function.
 local criterion = nn.MSECriterion()
 
-local env = CatchEnvironment(grideSize)
+local env = CatchEnvironment(gridSize)
 local memory = createMemory(maxMemory, discount)
 
 local winCount = 0
