@@ -174,9 +174,9 @@ local function trainNetwork(model, inputs, targets, criterion, sgdParams)
 end
 
 local epsilon = 1 -- The probability of choosing a random action (in training). This decays as iterations increase. (0 to 1)
-local epsilonMinimumValue = 0.1 -- The minimum value we want epsilon to reach in training. (0 to 1)
+local epsilonMinimumValue = 0.03 -- The minimum value we want epsilon to reach in training. (0 to 1)
 local nbActions = 3 -- The number of actions. Since we only have left/stay/right that means 3 actions.
-local epoch = 2000 -- The number of games we want the system to run for.
+local epoch = 1000 -- The number of games we want the system to run for.
 local hiddenSize = 100 -- Number of neurons in the hidden layers.
 local maxMemory = 500 -- How large should the memory be (where it stores its past experiences).
 local batchSize = 50 -- The mini-batch size for training. Samples are randomly taken from memory till mini-batch size.
@@ -194,7 +194,7 @@ model:add(nn.Linear(hiddenSize, nbActions))
 
 -- Params for Stochastic Gradient Descent (our optimizer).
 local sgdParams = {
-    learningRate = 0.1,
+    learningRate = 0.01,
     learningRateDecay = 1e-9,
     weightDecay = 0,
     momentum = 0.9,
@@ -255,3 +255,5 @@ for i = 1, epoch do
     end
     print(string.format("Epoch %d : err = %f : Win count %d ", i, err, winCount))
 end
+
+torch.save("TorchQLearningModel", model)
