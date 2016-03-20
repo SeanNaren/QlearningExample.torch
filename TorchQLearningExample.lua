@@ -14,6 +14,11 @@ require 'optim'
 
 math.randomseed(os.time())
 
+local logger = optim.Logger('train.log')
+logger:setNames { 'loss' }
+logger:style { '-' }
+
+
 --[[ Helper function: Chooses a random value between the two boundaries.]] --
 local function randf(s, e)
     return (math.random(0, (e - s) * 9999) / 10000) + s;
@@ -238,9 +243,11 @@ for i = 1, epoch do
         -- Train the network which returns the error.
         err = err + trainNetwork(model, inputs, targets, criterion, sgdParams)
     end
+    logger:add{err}
     print(string.format("Epoch %d : err = %f ", i, err))
 end
 
+logger:plot()
 
 env.reset()
 local isGameOver = false
