@@ -1,7 +1,7 @@
 # TorchQLearning
 ![TorchPlaysCatch](https://github.com/SeanNaren/TorchQLearningExample/raw/master/images/torchplayscatch.gif)
 
-(Not the best model in the world)
+(Not the best player in the world)
 
 Torch plays catch! Based on Eder Santanas' [implementation](https://gist.github.com/EderSantana/c7222daa328f0e885093) in keras. Highly recommend reading his informative and easy to follow blog post [here](https://edersantana.github.io/articles/keras_rl/).
 
