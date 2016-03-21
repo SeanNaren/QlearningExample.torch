@@ -48,9 +48,10 @@ while (numberOfGames < maxGames) do
         currentState = nextState
         isGameOver = gameOver
         drawState(fruitRow, fruitColumn, basket)
-        sleep(0.2)
+        sleep(1)
     end
 end
+
 
 
 
