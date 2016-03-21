@@ -14,10 +14,6 @@ require 'optim'
 
 math.randomseed(os.time())
 
-local logger = optim.Logger('train.log')
-logger:setNames { 'loss' }
-logger:style { '-' }
-
 --[[ Helper function: Chooses a random value between the two boundaries.]] --
 local function randf(s, e)
     return (math.random(0, (e - s) * 9999) / 10000) + s;
@@ -79,10 +75,9 @@ function CatchEnvironment(gridSize)
     end
 
     function env.updateState(action)
-        if (action == 0) then
+        if (action == 1) then
             action = -1
-        elseif (action == 1)
-        then
+        elseif (action == 2) then
             action = 0
         else
             action = 1
@@ -176,7 +171,7 @@ end
 function Main()
     print("Training new model")
     local epsilon = 1 -- The probability of choosing a random action (in training). This decays as iterations increase. (0 to 1)
-    local epsilonMinimumValue = 0.03 -- The minimum value we want epsilon to reach in training. (0 to 1)
+    local epsilonMinimumValue = 0.001 -- The minimum value we want epsilon to reach in training. (0 to 1)
     local nbActions = 3 -- The number of actions. Since we only have left/stay/right that means 3 actions.
     local epoch = 1000 -- The number of games we want the system to run for.
     local hiddenSize = 100 -- Number of neurons in the hidden layers.
@@ -260,11 +255,6 @@ function Main()
     end
     torch.save("TorchQLearningModel.model", model)
     print("Model saved")
-
-    logger:plot()
 end
-
 print("Call the Main() function at the end of the TorchQLearningExample.lua file to train a new model")
 --Main()
-
-
