@@ -127,7 +127,6 @@ local function Memory(maxMemory, discount)
 
         local inputs = torch.Tensor(chosenBatchSize, nbStates):zero()
         local targets = torch.Tensor(chosenBatchSize, nbActions):zero()
-
         --Fill the inputs and targets up.
         for i = 1, chosenBatchSize do
             -- Choose a random memory experience to add to the batch.
@@ -261,10 +260,11 @@ function Main()
     end
     torch.save("TorchQLearningModel.model", model)
     print("Model saved")
+
     logger:plot()
 end
 
 print("Call the Main() function at the end of the TorchQLearningExample.lua file to train a new model")
-Main()
+--Main()
 
 
