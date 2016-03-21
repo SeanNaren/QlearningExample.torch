@@ -7,6 +7,18 @@ Torch plays catch! Based on Eder Santanas' [implementation](https://gist.github.
 
 Agent has to catch the fruit before it falls to the ground. Agent wins if he succeeds to catch the fruit, loses if he fails.
 
+## Dependencies
+
+To install torch7 follow the guide <a href="http://torch.ch/docs/getting-started.html">here</a>.
+
+Other dependencies can be installed via luarocks:
+
+<a href="https://github.com/torch/optim">Optim: numeric optimization package for Torch</a>:
+```
+luarocks install optim
+```
+
+## visualization
 Visualization implemented in [itorch](https://github.com/facebook/iTorch). Click [here](https://github.com/facebook/iTorch#requirements) for install instructions.
 
 To run, type into terminal:
