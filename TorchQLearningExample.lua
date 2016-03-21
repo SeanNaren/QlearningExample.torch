@@ -14,13 +14,17 @@ require 'optim'
 
 math.randomseed(os.time())
 
+local logger = optim.Logger('train.log')
+logger:setNames { 'loss' }
+logger:style { '-' }
+
 --[[ Helper function: Chooses a random value between the two boundaries.]] --
 local function randf(s, e)
     return (math.random(0, (e - s) * 9999) / 10000) + s;
 end
 
 --[[ The environment: Handles interactions and contains the state of the environment]] --
-local function CatchEnvironment(gridSize)
+function CatchEnvironment(gridSize)
     local env = {}
     local state
     -- Returns the state of the environment.
@@ -45,6 +49,7 @@ local function CatchEnvironment(gridSize)
         local initialFruitColumn = math.random(1, gridSize)
         local initialBucketPosition = math.random(2, gridSize - 1)
         state = torch.Tensor({ 1, initialFruitColumn, initialBucketPosition })
+        return env.getState()
     end
 
     function env.getState()
@@ -93,8 +98,9 @@ local function CatchEnvironment(gridSize)
         env.updateState(action)
         local reward = env.getReward()
         local gameOver = env.isGameOver()
-        return env.observe(), reward, gameOver
+        return env.observe(), reward, gameOver, env.getState() -- For purpose of the visual, I also return the state.
     end
+
     return env
 end
 
@@ -158,7 +164,6 @@ local function trainNetwork(model, inputs, targets, criterion, sgdParams)
         gradParameters:zero()
         local predictions = model:forward(inputs)
         local loss = criterion:forward(predictions, targets)
-        model:zeroGradParameters()
         local gradOutput = criterion:backward(predictions, targets)
         model:backward(inputs, gradOutput)
         return loss, gradParameters
@@ -169,87 +174,97 @@ local function trainNetwork(model, inputs, targets, criterion, sgdParams)
     return loss
 end
 
-local epsilon = 1 -- The probability of choosing a random action (in training). This decays as iterations increase. (0 to 1)
-local epsilonMinimumValue = 0.03 -- The minimum value we want epsilon to reach in training. (0 to 1)
-local nbActions = 3 -- The number of actions. Since we only have left/stay/right that means 3 actions.
-local epoch = 1000 -- The number of games we want the system to run for.
-local hiddenSize = 100 -- Number of neurons in the hidden layers.
-local maxMemory = 500 -- How large should the memory be (where it stores its past experiences).
-local batchSize = 50 -- The mini-batch size for training. Samples are randomly taken from memory till mini-batch size.
-local gridSize = 10 -- The size of the grid that the agent is going to play the game on.
-local nbStates = gridSize * gridSize -- We eventually flatten to a 1d tensor for the network.
-local discount = 0.9 -- The discount is used to force the network to choose states that lead to the reward quicker (0 to 1)
+function Main()
+    print("Training new model")
+    local epsilon = 1 -- The probability of choosing a random action (in training). This decays as iterations increase. (0 to 1)
+    local epsilonMinimumValue = 0.03 -- The minimum value we want epsilon to reach in training. (0 to 1)
+    local nbActions = 3 -- The number of actions. Since we only have left/stay/right that means 3 actions.
+    local epoch = 1000 -- The number of games we want the system to run for.
+    local hiddenSize = 100 -- Number of neurons in the hidden layers.
+    local maxMemory = 500 -- How large should the memory be (where it stores its past experiences).
+    local batchSize = 50 -- The mini-batch size for training. Samples are randomly taken from memory till mini-batch size.
+    local gridSize = 10 -- The size of the grid that the agent is going to play the game on.
+    local nbStates = gridSize * gridSize -- We eventually flatten to a 1d tensor to feed the network.
+    local discount = 0.9 -- The discount is used to force the network to choose states that lead to the reward quicker (0 to 1)
 
--- Create the base model.
-local model = nn.Sequential()
-model:add(nn.Linear(nbStates, hiddenSize))
-model:add(nn.ReLU())
-model:add(nn.Linear(hiddenSize, hiddenSize))
-model:add(nn.ReLU())
-model:add(nn.Linear(hiddenSize, nbActions))
+    -- Create the base model.
+    local model = nn.Sequential()
+    model:add(nn.Linear(nbStates, hiddenSize))
+    model:add(nn.ReLU())
+    model:add(nn.Linear(hiddenSize, hiddenSize))
+    model:add(nn.ReLU())
+    model:add(nn.Linear(hiddenSize, nbActions))
 
--- Params for Stochastic Gradient Descent (our optimizer).
-local sgdParams = {
-    learningRate = 0.01,
-    learningRateDecay = 1e-9,
-    weightDecay = 0,
-    momentum = 0.9,
-    dampening = 0,
-    nesterov = true
-}
+    -- Params for Stochastic Gradient Descent (our optimizer).
+    local sgdParams = {
+        learningRate = 0.1,
+        learningRateDecay = 1e-9,
+        weightDecay = 0,
+        momentum = 0.9,
+        dampening = 0,
+        nesterov = true
+    }
 
--- Mean Squared Error for our loss function.
-local criterion = nn.MSECriterion()
+    -- Mean Squared Error for our loss function.
+    local criterion = nn.MSECriterion()
 
-local env = CatchEnvironment(gridSize)
-local memory = Memory(maxMemory, discount)
+    local env = CatchEnvironment(gridSize)
+    local memory = Memory(maxMemory, discount)
 
-local winCount = 0
-for i = 1, epoch do
-    -- Initialise the environment.
-    local err = 0
-    env.reset()
-    local isGameOver = false
+    local winCount = 0
+    for i = 1, epoch do
+        -- Initialise the environment.
+        local err = 0
+        env.reset()
+        local isGameOver = false
 
-    -- The initial state of the environment.
-    local currentState = env.observe()
+        -- The initial state of the environment.
+        local currentState = env.observe()
 
-    while (isGameOver ~= true) do
-        local action
-        -- Decides if we should choose a random action, or an action from the policy network.
-        if (randf(0, 1) <= epsilon) then
-            action = math.random(1, nbActions)
-        else
-            -- Forward the current state through the network.
-            local q = model:forward(currentState)
-            -- Find the max index (the chosen action).
-            local max, index = torch.max(q, 1)
-            action = index[1]
+        while (isGameOver ~= true) do
+            local action
+            -- Decides if we should choose a random action, or an action from the policy network.
+            if (randf(0, 1) <= epsilon) then
+                action = math.random(1, nbActions)
+            else
+                -- Forward the current state through the network.
+                local q = model:forward(currentState)
+                -- Find the max index (the chosen action).
+                local max, index = torch.max(q, 1)
+                action = index[1]
+            end
+            -- Decay the epsilon by multiplying by 0.999, not allowing it to go below a certain threshold.
+            if (epsilon > epsilonMinimumValue) then
+                epsilon = epsilon * 0.999
+            end
+            local nextState, reward, gameOver = env.act(action)
+            if (reward == 1) then winCount = winCount + 1 end
+            memory.remember({
+                inputState = currentState,
+                action = action,
+                reward = reward,
+                nextState = nextState,
+                gameOver = gameOver
+            })
+            -- Update the current state and if the game is over.
+            currentState = nextState
+            isGameOver = gameOver
+
+            -- We get a batch of training data to train the model.
+            local inputs, targets = memory.getBatch(model, batchSize, nbActions, nbStates)
+
+            -- Train the network which returns the error.
+            err = err + trainNetwork(model, inputs, targets, criterion, sgdParams)
         end
-        -- Decay the epsilon by multiplying by 0.999, not allowing it to go below a certain threshold.
-        if (epsilon > epsilonMinimumValue) then
-            epsilon = epsilon * 0.999
-        end
-        local nextState, reward, gameOver = env.act(action)
-        if (reward == 1) then winCount = winCount + 1 end
-        memory.remember({
-            inputState = currentState,
-            action = action,
-            reward = reward,
-            nextState = nextState,
-            gameOver = gameOver
-        })
-        -- Update the current state and if the game is over.
-        currentState = nextState
-        isGameOver = gameOver
-
-        -- We get a batch of training data to train the model.
-        local inputs, targets = memory.getBatch(model, batchSize, nbActions, nbStates)
-
-        -- Train the network which returns the error.
-        err = err + trainNetwork(model, inputs, targets, criterion, sgdParams)
+        logger:add { err }
+        print(string.format("Epoch %d : err = %f : Win count %d ", i, err, winCount))
     end
-    print(string.format("Epoch %d : err = %f : Win count %d ", i, err, winCount))
+    torch.save("TorchQLearningModel.model", model)
+    print("Model saved")
+    logger:plot()
 end
 
-torch.save("TorchQLearningModel.model", model)
+print("Call the Main() function at the end of the TorchQLearningExample.lua file to train a new model")
+Main()
+
+
