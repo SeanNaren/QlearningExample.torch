@@ -18,7 +18,11 @@ Other dependencies can be installed via luarocks:
 luarocks install optim
 ```
 
-## visualization
+## How to run
+
+To train a model, first un-comment out the Main() call at the end of TorchQLearningExample.lua. Then run the TorchQLearningExample.lua script.
+
+## Visualization
 Visualization implemented in [itorch](https://github.com/facebook/iTorch). Click [here](https://github.com/facebook/iTorch#requirements) for install instructions.
 
 To run, type into terminal:
@@ -26,6 +30,8 @@ To run, type into terminal:
 ```
 itorch notebook
 ```
+
+Make sure in the TorchQLearningExample.lua script, you comment out Main(), otherwise it will train a new model.
 
 And navigate to the TorchPlaysCatch.pynb. Run the kernel (you must've installed the above dependencies).
 
