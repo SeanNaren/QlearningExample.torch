@@ -79,7 +79,7 @@ local function Memory(maxMemory, discount)
             local randomIndex = math.random(1, memoryLength)
             local memoryInput = memory[randomIndex]
 
-            local target = model:forward(memoryInput.inputState)
+            local target = model:forward(memoryInput.inputState):clone()
 
             --Gives us Q_sa, the max q for the next state.
             local nextStateMaxQ = torch.max(model:forward(memoryInput.nextState), 1)[1]
